@@ -7,6 +7,8 @@ const router = Router();
 // AI routes require authentication to scope answers strictly to user data
 router.use(authenticate);
 
+router.get('/status', aiController.getAiStatus);
+router.post('/config', aiController.setAiConfig);
 router.post('/ask', aiController.askMemory);
 router.post('/summarize', aiController.summarizeExcerpt);
 

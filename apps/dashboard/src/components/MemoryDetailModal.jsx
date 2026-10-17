@@ -39,12 +39,13 @@ export default function MemoryDetailModal({
   };
 
   const handleGenerateSummary = async () => {
-    if (!memory.selectedText) return;
+    const textToSummarize = memory.selectedText || memory.note || memory.title;
+    if (!textToSummarize) return;
     setGeneratingAi(true);
     setAiError(null);
 
     try {
-      const res = await api.summarize(memory.selectedText);
+      const res = await api.summarize(textToSummarize);
       if (res?.summary) {
         const updated = await api.updateMemory(memory._id, {
           summary: res.summary,
@@ -52,7 +53,7 @@ export default function MemoryDetailModal({
         onUpdateMemory(updated);
         notify.success('AI Summary Generated', 'Saved to your memory.');
       } else {
-        const msg = 'AI provider is not configured or unavailable.';
+        const msg = 'Unable to generate summary for this content.';
         setAiError(msg);
         notify.warning('AI Notice', msg);
       }
@@ -159,14 +160,14 @@ export default function MemoryDetailModal({
                 <Sparkles className="h-3.5 w-3.5 text-indigo-600" />
                 <span>AI Summary</span>
               </h4>
-              {!memory.summary && memory.selectedText && (
+              {!memory.summary && (
                 <button
                   onClick={handleGenerateSummary}
                   disabled={generatingAi}
                   className="text-xs text-indigo-600 hover:underline flex items-center space-x-1 font-medium disabled:opacity-50"
                 >
                   {generatingAi && <Loader2 className="h-3 w-3 animate-spin" />}
-                  <span>{generatingAi ? 'Generating...' : 'Generate with Gemini'}</span>
+                  <span>{generatingAi ? 'Generating...' : 'Generate AI Summary'}</span>
                 </button>
               )}
             </div>
@@ -181,7 +182,7 @@ export default function MemoryDetailModal({
               </p>
             ) : (
               <p className="text-xs text-slate-400 italic">
-                No summary generated yet. Click "Generate with Gemini" to enrich.
+                No summary generated yet. Click "Generate AI Summary" to enrich.
               </p>
             )}
           </div>

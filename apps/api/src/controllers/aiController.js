@@ -16,7 +16,6 @@ export async function askMemory(req, res, next) {
     const userId = req.user.id;
 
     // Retrieve relevant candidate memories for this user
-    // Split query terms for keyword retrieval
     const terms = question.trim().split(/\s+/).filter(t => t.length > 2);
     let query = { userId };
 
@@ -30,14 +29,22 @@ export async function askMemory(req, res, next) {
       ];
     }
 
-    const candidateMemories = await Memory.find(query)
+    let candidateMemories = await Memory.find(query)
       .sort({ createdAt: -1 })
       .limit(10)
       .lean();
 
+    // If specific keyword matching found 0 memories, retrieve user's latest memories so general/semantic questions can be answered
+    if (candidateMemories.length === 0) {
+      candidateMemories = await Memory.find({ userId })
+        .sort({ createdAt: -1 })
+        .limit(10)
+        .lean();
+    }
+
     const result = await aiService.answerFromMemories(question, candidateMemories);
 
-    // Resolve source IDs to actual database records owned by the user
+    // Resolve source IDs to actual database records owned by the current user
     const sourceIds = (result.sources || []).map(s => s.memoryId);
     const verifiedDbRecords = await Memory.find({
       _id: { $in: sourceIds },
@@ -90,11 +97,29 @@ export async function summarizeExcerpt(req, res, next) {
 
     return res.status(200).json({
       data: {
-        summary,
-        suggestedTags,
+        summary: summary || 'Summary could not be generated for this excerpt.',
+        suggestedTags: suggestedTags || [],
       },
     });
   } catch (err) {
     next(err);
   }
+}
+
+export async function getAiStatus(req, res) {
+  return res.status(200).json({
+    data: aiService.getStatus(),
+  });
+}
+
+export async function setAiConfig(req, res) {
+  const { apiKey } = req.body || {};
+  if (apiKey !== undefined) {
+    aiService.setApiKey(apiKey);
+  }
+
+  return res.status(200).json({
+    data: aiService.getStatus(),
+    message: 'AI configuration updated successfully',
+  });
 }

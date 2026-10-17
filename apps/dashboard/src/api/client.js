@@ -161,4 +161,17 @@ export const api = {
     });
     return res.data;
   },
+
+  async getAiStatus() {
+    const res = await request('/ai/status');
+    return res.data;
+  },
+
+  async setAiConfig(apiKey) {
+    const res = await request('/ai/config', {
+      method: 'POST',
+      body: JSON.stringify({ apiKey }),
+    });
+    return res.data;
+  },
 };
