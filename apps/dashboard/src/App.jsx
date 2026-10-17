@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
+import { Toaster } from 'sonner';
 import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
 import MemoryCard from './components/MemoryCard';
 import MemoryDetailModal from './components/MemoryDetailModal';
 import MemoryEditModal from './components/MemoryEditModal';
 import AskMemoryModal from './components/AskMemoryModal';
+import ConfirmModal from './components/ConfirmModal';
 import AuthScreen from './components/AuthScreen';
 import { useAuth } from './context/AuthContext';
 import { api } from './api/client';
+import { notify } from './utils/notifications';
 import { Loader2, Plus, Bookmark, Search, RefreshCw, AlertCircle } from 'lucide-react';
 
 export default function App() {
@@ -26,11 +29,16 @@ export default function App() {
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
 
-  // Modals
+  // Modals & Confirmation
   const [detailMemory, setDetailMemory] = useState(null);
-  const [editMemory, setEditMemory] = useState(null); // null when closed, empty object {} when creating, object when editing
+  const [editMemory, setEditMemory] = useState(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isAskOpen, setIsAskOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState({
+    isOpen: false,
+    memory: null,
+    loading: false,
+  });
 
   // Fetch memories whenever filters change
   const fetchMemories = async () => {
@@ -53,6 +61,7 @@ export default function App() {
       setTotalCount(res.total || 0);
     } catch (err) {
       setError(err.message || 'Failed to load memories.');
+      notify.error('Network Error', err.message || 'Failed to load memories.');
     } finally {
       setLoading(false);
     }
@@ -76,26 +85,41 @@ export default function App() {
 
   // Handlers
   const handleSaveMemory = async (payload) => {
-    if (editMemory && editMemory._id) {
-      // Update
-      const updated = await api.updateMemory(editMemory._id, payload);
-      setMemories(memories.map(m => m._id === updated._id ? updated : m));
-      if (detailMemory && detailMemory._id === updated._id) {
-        setDetailMemory(updated);
+    try {
+      if (editMemory && editMemory._id) {
+        // Update
+        const updated = await api.updateMemory(editMemory._id, payload);
+        setMemories(memories.map(m => m._id === updated._id ? updated : m));
+        if (detailMemory && detailMemory._id === updated._id) {
+          setDetailMemory(updated);
+        }
+        notify.success('Memory updated', 'Your changes have been saved.');
+      } else {
+        // Create new
+        const created = await api.createMemory(payload);
+        setMemories([created, ...memories]);
+        setTotalCount(prev => prev + 1);
+        notify.success('Memory created', 'Saved to your personal library.');
       }
-    } else {
-      // Create new
-      const created = await api.createMemory(payload);
-      setMemories([created, ...memories]);
-      setTotalCount(prev => prev + 1);
+    } catch (err) {
+      notify.error('Failed to save memory', err.message);
+      throw err;
     }
   };
 
-  const handleDeleteMemory = async (memoryToDelete) => {
-    if (!window.confirm(`Are you sure you want to delete "${memoryToDelete.title}"?`)) {
-      return;
-    }
+  const promptDeleteMemory = (memoryToDelete) => {
+    setConfirmDelete({
+      isOpen: true,
+      memory: memoryToDelete,
+      loading: false,
+    });
+  };
 
+  const handleConfirmDelete = async () => {
+    const memoryToDelete = confirmDelete.memory;
+    if (!memoryToDelete) return;
+
+    setConfirmDelete(prev => ({ ...prev, loading: true }));
     try {
       await api.deleteMemory(memoryToDelete._id);
       setMemories(memories.filter(m => m._id !== memoryToDelete._id));
@@ -103,8 +127,11 @@ export default function App() {
       if (detailMemory && detailMemory._id === memoryToDelete._id) {
         setDetailMemory(null);
       }
+      notify.success('Memory deleted', `"${memoryToDelete.title}" was removed.`);
+      setConfirmDelete({ isOpen: false, memory: null, loading: false });
     } catch (err) {
-      alert(`Failed to delete memory: ${err.message}`);
+      notify.error('Failed to delete memory', err.message);
+      setConfirmDelete(prev => ({ ...prev, loading: false }));
     }
   };
 
@@ -229,7 +256,7 @@ export default function App() {
                       setEditMemory(item);
                       setIsEditOpen(true);
                     }}
-                    onDelete={handleDeleteMemory}
+                    onDelete={promptDeleteMemory}
                     onSelectTag={(t) => setSelectedTag(t)}
                   />
                 ))}
@@ -264,7 +291,7 @@ export default function App() {
         </main>
       </div>
 
-      {/* Modals */}
+      {/* Modals & Dialogs */}
       <MemoryDetailModal
         memory={detailMemory}
         isOpen={Boolean(detailMemory)}
@@ -273,7 +300,7 @@ export default function App() {
           setEditMemory(item);
           setIsEditOpen(true);
         }}
-        onDelete={handleDeleteMemory}
+        onDelete={promptDeleteMemory}
         onUpdateMemory={(updated) => {
           setDetailMemory(updated);
           setMemories(memories.map(m => m._id === updated._id ? updated : m));
@@ -294,6 +321,21 @@ export default function App() {
         isOpen={isAskOpen}
         onClose={() => setIsAskOpen(false)}
       />
+
+      <ConfirmModal
+        isOpen={confirmDelete.isOpen}
+        title="Delete Memory"
+        message={`Are you sure you want to delete "${confirmDelete.memory?.title}"? This action cannot be undone.`}
+        confirmText="Delete Memory"
+        cancelText="Cancel"
+        variant="danger"
+        isLoading={confirmDelete.loading}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setConfirmDelete({ isOpen: false, memory: null, loading: false })}
+      />
+
+      {/* Modern Toast Notifications */}
+      <Toaster position="top-right" richColors closeButton />
     </div>
   );
 }

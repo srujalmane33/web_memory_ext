@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
+import { Toaster } from 'sonner';
 import { Bookmark, Lock, Mail, Loader2, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { notify } from '../utils/notifications';
 
 export default function AuthScreen() {
   const { login, register } = useAuth();
@@ -18,11 +20,15 @@ export default function AuthScreen() {
     try {
       if (isRegister) {
         await register(email, password);
+        notify.success('Account created', `Welcome to Web Memory, ${email}!`);
       } else {
         await login(email, password);
+        notify.success('Signed in', `Welcome back, ${email}!`);
       }
     } catch (err) {
-      setError(err.message || 'Authentication failed. Please check credentials.');
+      const msg = err.message || 'Authentication failed. Please check credentials.';
+      setError(msg);
+      notify.error('Authentication Error', msg);
     } finally {
       setLoading(false);
     }
@@ -127,6 +133,7 @@ export default function AuthScreen() {
           </form>
         </div>
       </div>
+      <Toaster position="top-right" richColors closeButton />
     </div>
   );
 }

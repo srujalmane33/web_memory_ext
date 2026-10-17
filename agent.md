@@ -177,8 +177,13 @@ Pagination returns `data: [...]`, `page`, `limit`, `total`, `totalPages`.
   - `MemoryDetailModal.jsx`: Full detail inspector with complete text excerpt (up to 20,000 chars), personal notes, source URL with "Open Source" external link, metadata, and "Generate with Gemini" AI enrichment.
   - `MemoryEditModal.jsx`: Reusable creation and editing modal with live character counters and validation.
   - `AuthScreen.jsx`: Tabbed sign-in and account registration for unauthenticated sessions.
+  - `ConfirmModal.jsx`: Accessible modal dialog replacing crude `window.confirm` for destructive operations like deleting memories.
+  - `utils/notifications.js`: Unified toast service wrapping `sonner` for success, error, info, warning, and interactive confirmation toasts.
 
 ### Milestone 4 — Deployment & Quality Assurance (Completed)
+- **Port Configuration & Browser Safety**:
+  - API runs on **Port 5001** (`http://localhost:5001/api`).
+  - *Rationale*: Port 5000 is occupied on macOS Monterey+ by Apple's ControlCenter / AirPlay Receiver (`*:commplex-main`). Port 6000 is on Google Chrome's strictly blocked ports list for security (`net::ERR_UNSAFE_PORT` for X11 protocol). Port 5001 is completely safe, standard, and supported by all modern browsers.
 - **Configuration Templates**:
   - Root `.env.example`, `apps/api/.env.example`, `apps/dashboard/.env.example`, and `apps/extension/.env.example`.
 - **Documentation**:
@@ -199,7 +204,52 @@ Pagination returns `data: [...]`, `page`, `limit`, `total`, `totalPages`.
 
 ---
 
-## 6. How to Run & Verify
+## 6. Frontend Toast & Confirmation Architecture
+
+The frontend uses **`sonner`** for modern, lightweight, non-blocking toast notifications, and provides two tiers of user confirmation:
+
+### 6.1 Toast Helper API (`apps/dashboard/src/utils/notifications.js`)
+```javascript
+import { notify } from './utils/notifications';
+
+// 1. Success toast
+notify.success('Memory created', 'Saved to your personal library.');
+
+// 2. Error toast
+notify.error('Network Error', 'Unable to reach backend.');
+
+// 3. Info toast
+notify.info('Copied!', 'Excerpt copied to clipboard.');
+
+// 4. Interactive In-Toast Confirmation
+notify.confirm('Delete this memory?', {
+  description: 'This action cannot be undone.',
+  confirmText: 'Delete',
+  cancelText: 'Cancel',
+  onConfirm: () => doDelete(),
+  onCancel: () => console.log('Cancelled'),
+});
+```
+
+### 6.2 Confirmation Dialog Modal (`apps/dashboard/src/components/ConfirmModal.jsx`)
+Used for critical or destructive user confirmations (replacing `window.confirm`):
+```jsx
+<ConfirmModal
+  isOpen={isOpen}
+  title="Delete Memory"
+  message="Are you sure you want to delete this memory? This action cannot be undone."
+  confirmText="Delete Memory"
+  cancelText="Cancel"
+  variant="danger"
+  isLoading={loading}
+  onConfirm={handleConfirmDelete}
+  onCancel={() => setIsOpen(false)}
+/>
+```
+
+---
+
+## 7. How to Run & Verify
 
 ```bash
 # 1. Run all unit & specification tests
@@ -209,7 +259,7 @@ npm test
 npm run build
 
 # 3. Start development servers
-npm run dev --workspace=apps/api         # Runs API on port 5000
+npm run dev --workspace=apps/api         # Runs API on port 5001
 npm run dev --workspace=apps/dashboard   # Runs Dashboard on port 5173
 
 # 4. Load extension in Chrome

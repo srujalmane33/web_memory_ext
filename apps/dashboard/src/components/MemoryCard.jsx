@@ -22,6 +22,8 @@ function formatDate(dateString) {
   });
 }
 
+import { notify } from '../utils/notifications';
+
 export default function MemoryCard({
   memory,
   onOpenDetail,
@@ -36,6 +38,7 @@ export default function MemoryCard({
     if (memory.selectedText) {
       navigator.clipboard.writeText(memory.selectedText);
       setCopied(true);
+      notify.info('Copied to clipboard', 'Excerpt ready to paste.');
       setTimeout(() => setCopied(false), 2000);
     }
   };

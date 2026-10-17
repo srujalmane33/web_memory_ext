@@ -6,7 +6,7 @@
 
 import { localStorageService } from './chrome';
 
-const DEFAULT_API_BASE = 'http://localhost:5000/api';
+const DEFAULT_API_BASE = 'http://localhost:5001/api';
 
 export async function getApiBaseUrl() {
   const configured = await localStorageService.get('wm_api_url', DEFAULT_API_BASE);

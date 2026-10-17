@@ -14,6 +14,8 @@ import {
 } from 'lucide-react';
 import { api } from '../api/client';
 
+import { notify } from '../utils/notifications';
+
 export default function MemoryDetailModal({
   memory,
   isOpen,
@@ -32,6 +34,7 @@ export default function MemoryDetailModal({
     const content = memory.selectedText || memory.note || memory.url;
     navigator.clipboard.writeText(content);
     setCopied(true);
+    notify.info('Copied!', 'Content copied to clipboard.');
     setTimeout(() => setCopied(false), 2000);
   };
 
@@ -47,11 +50,16 @@ export default function MemoryDetailModal({
           summary: res.summary,
         });
         onUpdateMemory(updated);
+        notify.success('AI Summary Generated', 'Saved to your memory.');
       } else {
-        setAiError('AI provider is not configured or unavailable.');
+        const msg = 'AI provider is not configured or unavailable.';
+        setAiError(msg);
+        notify.warning('AI Notice', msg);
       }
     } catch (err) {
-      setAiError(err.message || 'Failed to generate AI summary.');
+      const msg = err.message || 'Failed to generate AI summary.';
+      setAiError(msg);
+      notify.error('Generation Failed', msg);
     } finally {
       setGeneratingAi(false);
     }

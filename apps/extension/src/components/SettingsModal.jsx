@@ -3,13 +3,13 @@ import { X, Save, RefreshCw } from 'lucide-react';
 import { localStorageService } from '../utils/chrome';
 
 export default function SettingsModal({ isOpen, onClose }) {
-  const [apiUrl, setApiUrl] = useState('http://localhost:5000/api');
+  const [apiUrl, setApiUrl] = useState('http://localhost:5001/api');
   const [dashboardUrl, setDashboardUrl] = useState('http://localhost:5173');
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
-      localStorageService.get('wm_api_url', 'http://localhost:5000/api').then(setApiUrl);
+      localStorageService.get('wm_api_url', 'http://localhost:5001/api').then(setApiUrl);
       localStorageService.get('wm_dashboard_url', 'http://localhost:5173').then(setDashboardUrl);
       setSaved(false);
     }

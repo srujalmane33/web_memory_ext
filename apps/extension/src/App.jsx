@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Toaster, toast } from 'sonner';
 import Header from './components/Header';
 import SaveForm from './components/SaveForm';
 import RecentList from './components/RecentList';
@@ -110,9 +111,12 @@ export default function App() {
       setMemories(updated);
 
       setSaveSuccess(true);
+      toast.success('Memory saved!', { description: memoryPayload.title });
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (err) {
-      setError(err.message || 'Error occurred while saving memory.');
+      const msg = err.message || 'Error occurred while saving memory.';
+      setError(msg);
+      toast.error('Save failed', { description: msg });
     } finally {
       setIsSaving(false);
     }
@@ -123,6 +127,7 @@ export default function App() {
     setUser(null);
     const local = await localStorageService.get('wm_local_memories', []);
     setMemories(local);
+    toast.info('Signed out');
   };
 
   const handleOpenDashboard = async () => {
@@ -167,6 +172,7 @@ export default function App() {
         onAuthSuccess={(authedUser) => {
           setUser(authedUser);
           loadRecentMemories(authedUser);
+          toast.success('Signed in', { description: `Logged in as ${authedUser.email}` });
         }}
       />
 
@@ -174,6 +180,8 @@ export default function App() {
         isOpen={showSettingsModal}
         onClose={() => setShowSettingsModal(false)}
       />
+
+      <Toaster position="bottom-center" richColors />
     </div>
   );
 }
